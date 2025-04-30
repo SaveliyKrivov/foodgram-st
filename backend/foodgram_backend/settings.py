@@ -138,3 +138,14 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
 }
+
+DJOSER = {
+    'LOGIN_FIELD' : 'email',
+    "SERIALIZERS" : {
+        'user_create' : 'api.serializers.CustomUserCreateSerializer',
+        'current_user' : 'api.serializers.CustomUserSerializer',
+        'user' : 'api.serializers.CustomUserSerializer',
+    },
+    'HIDE_USERS' : False,
+    
+}
