@@ -137,14 +137,16 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE' : 10,
 }
 
 DJOSER = {
     'LOGIN_FIELD' : 'email',
     "SERIALIZERS" : {
-        'user_create' : 'api.serializers.CustomUserCreateSerializer',
-        'current_user' : 'api.serializers.CustomUserSerializer',
-        'user' : 'api.serializers.CustomUserSerializer',
+        # 'user_create' : 'api.serializers.CustomUserCreateSerializer',
+        'current_user' : 'users.serializers.CustomUserSerializer',
+        'user' : 'users.serializers.CustomUserSerializer',
     },
     'HIDE_USERS' : False,
     
