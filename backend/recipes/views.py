@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import permissions, status
+from .filters import RecipeFilter
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -24,7 +25,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = UserPagination
     permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = ('is_favorited', 'is_in_shopping_cart', 'author__id')
+    filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
