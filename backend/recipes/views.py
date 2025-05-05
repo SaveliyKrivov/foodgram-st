@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from .filters import RecipeFilter
-
+from urlshortner.utils import shorten_url
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
@@ -42,7 +42,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 recipe=recipe
             )
             return Response(
-                data={'id' : recipe.id,
+                data={'id': recipe.id,
                       'name': recipe.name,
                       'image': recipe.image.url,
                       'cooking_time': recipe.cooking_time
@@ -54,6 +54,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             favorite.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(methods=['get'], detail=True, url_path='get-link')
+    def get_short_link(self, request, pk=None):
+        get_object_or_404(Recipe, id=pk)
+        default_link = request.build_absolute_uri(f'/api/recipes/{pk}/')
+        print(default_link)
+        short_link = shorten_url(url=default_link, is_permanent=False)
+        return Response(data={'short-link': short_link})
 
 
 

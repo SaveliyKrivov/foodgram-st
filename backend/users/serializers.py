@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from users.models import CustomUser
+from users.models import CustomUser, Subscription
+from recipes.models import Recipe
 from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
     
@@ -13,7 +14,10 @@ class CustomUserSerializer(UserSerializer):
         fields = ('id', 'email', 'username', 'first_name', 'last_name', 'avatar', 'is_subscribed')
 
     def get_is_subscribed(self, obj):
-        return False
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return False
+        return Subscription.objects.filter(user=user, following=obj).exists()
     
     def get_avatar(self, obj):
         if obj.avatar:
@@ -36,3 +40,36 @@ class AvatarSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
     
+class ShortRecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time',)
+
+class SubscriptionUserSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'is_subscribed', 'recipes', 'recipes_count', 'avatar'
+        )
+
+    def get_is_subscribed(self, obj):
+        return True
+    
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        try:
+            limit = int(request.query_params.get('recipes_limit'))
+        except(ValueError, TypeError):
+            limit = None
+        recipes = obj.recipes.all()
+        if limit:
+            recipes = recipes[:limit]
+        return ShortRecipeSerializer(recipes, many=True, context=self.context).data
+    
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()

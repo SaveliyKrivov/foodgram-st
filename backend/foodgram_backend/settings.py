@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'djoser',
     'django_filters',
     'recipes',
+    'urlshortner',
 ]
 
 MIDDLEWARE = [
