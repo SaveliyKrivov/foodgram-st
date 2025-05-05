@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from drf_extra_fields.fields import Base64ImageField
-from .models import Ingredient, Recipe, IngredientInRecipe
+from .models import Ingredient, Recipe, IngredientInRecipe, Favorite
 from users.serializers import CustomUserSerializer
 
 
@@ -26,6 +26,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = IngredientInRecipeSerializer(source='ingredient_amounts', many=True)
     author = CustomUserSerializer(read_only=True)
     image = Base64ImageField(required=True)
+    is_favorited = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -61,14 +62,18 @@ class RecipeSerializer(serializers.ModelSerializer):
             for ingredient_data in ingredient_data
         ])
 
+    def get_is_favorited(self, obj):
+        request = self.context.get('request')
+        return Favorite.objects.filter(
+            user=request.user.id,
+            recipe=obj
+            ).exists()
+    
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['image'] = instance.image.url
         return representation
     
-#TODO 1) Переработать сериализаторы - модели связаны через третью модель
-#     разобраться с is_favorited и is_in_shopping_cart
-#     2) Разобраться с viewset'ами
-#     3) Сделать классы permission
-#     4) Зарегать пути в urls
+
+        
 
