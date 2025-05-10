@@ -1,7 +1,6 @@
 from rest_framework import viewsets
 from .serializers import RecipeSerializer, IngredientSerializer
 from .models import Recipe, Ingredient, Favorite, ShoppingCart, IngredientInRecipe
-from rest_framework import filters
 from api.permissions import IsAuthorOrReadOnly
 from api.pagination import UserPagination
 from django_filters.rest_framework import DjangoFilterBackend
@@ -17,9 +16,15 @@ from django.db.models import Sum
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (filters.SearchFilter,)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     pagination_class = None
-    search_fields = ('^name',)
+
+    def get_queryset(self):
+        queryset = Ingredient.objects.all()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__startswith=name)
+        return queryset
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
@@ -33,8 +38,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
     def add_delete_recipe(self, request, user, recipe, model):
+        obj = model.objects.filter(user=user, recipe=recipe).first()
         if request.method == 'POST':
-            if model.objects.filter(user=user, recipe=recipe).exists():
+            if obj:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
             model.objects.create(
                 user=user,
@@ -48,7 +54,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                       },
                 status=status.HTTP_201_CREATED
             )
-        obj = get_object_or_404(model, user=user, recipe=recipe)
+        
         if obj:
             obj.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)

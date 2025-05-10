@@ -63,6 +63,36 @@ class RecipeSerializer(serializers.ModelSerializer):
             for ingredient_data in ingredient_data
         ])
 
+    def validate(self, data):
+        image = self.initial_data.get('image')
+        if not image:
+            raise serializers.ValidationError(
+                {'image': 'У рецепта должна быть картинка'}
+            )
+        ingredients = self.initial_data.get('ingredients')
+        if not ingredients:
+            raise serializers.ValidationError(
+                {'ingredients': 'У рецепта должен быть хотя бы один ингредиент'}
+            )
+        
+        seen_ingredients = set()
+        for ingr in ingredients:
+            ingr_id = ingr.get('id')
+            ingr_amount = ingr.get('amount')
+
+            if ingr_id in seen_ingredients:
+                raise serializers.ValidationError(
+                    {'ingredients': 'Ингредиенты должны быть уникальными'}
+                )
+            seen_ingredients.add(ingr_id)
+
+            if int(ingr_amount) <= 0:
+                raise serializers.ValidationError(
+                    {'ingredients': 'Количество ингредиента должно быть больше нуля'}
+                )
+        return data
+        
+
     def get_is_favorited(self, obj):
         request = self.context.get('request')
         return Favorite.objects.filter(

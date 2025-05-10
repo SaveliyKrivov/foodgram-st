@@ -5,16 +5,34 @@ from rest_framework.decorators import action
 from api.pagination import UserPagination
 from .serializers import AvatarSerializer, SubscriptionUserSerializer
 from .models import Subscription, CustomUser
+from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 
 class CustomUserViewSet(DjoserUserViewSet):
-    permission_classes = [permissions.AllowAny]
     pagination_class = UserPagination
+
+    def get_permissions(self):
+        if self.action in ['retrieve', 'list']:
+            return (permissions.IsAuthenticatedOrReadOnly(), )
+        return super().get_permissions()
+    
+    def perform_create(self, serializer, *args, **kwargs):
+        data = serializer.validated_data
+        if not data.get('first_name') or not data.get('last_name'):
+            raise serializers.ValidationError(
+                {'error': 'Поля first_name и last_name являются обязательными'}
+            )
+        super().perform_create(serializer)
 
     @action(methods=["put", "delete"], detail=False, url_path='me/avatar')
     def avatar(self, request):
         user = request.user
         if request.method == 'PUT':
+            if 'avatar' not in request.data:
+                return Response(
+                    {'avatar': 'Это поле обязательное'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             serializer = AvatarSerializer(
                 user,
                 data=request.data,

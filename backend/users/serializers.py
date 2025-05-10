@@ -8,6 +8,8 @@ from drf_extra_fields.fields import Base64ImageField
 class CustomUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
 
     class Meta(UserSerializer.Meta):
         model = CustomUser
@@ -34,7 +36,9 @@ class AvatarSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         avatar = validated_data.get('avatar')
         if avatar is None:
-            return serializers.ValidationError('Avatar is required.')
+            raise serializers.ValidationError(
+                {'avatar': 'Avatar is required.'}
+            )
         
         instance.avatar = avatar
         instance.save()
