@@ -8,6 +8,7 @@ from .models import Subscription, CustomUser
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 
+
 class CustomUserViewSet(DjoserUserViewSet):
     pagination_class = UserPagination
 
@@ -15,7 +16,7 @@ class CustomUserViewSet(DjoserUserViewSet):
         if self.action in ['retrieve', 'list']:
             return (permissions.IsAuthenticatedOrReadOnly(), )
         return super().get_permissions()
-    
+
     def perform_create(self, serializer, *args, **kwargs):
         data = serializer.validated_data
         if not data.get('first_name') or not data.get('last_name'):
@@ -24,7 +25,11 @@ class CustomUserViewSet(DjoserUserViewSet):
             )
         super().perform_create(serializer)
 
-    @action(methods=["put", "delete"], detail=False, url_path='me/avatar')
+    @action(
+        methods=["put", "delete"],
+        detail=False,
+        url_path='me/avatar'
+    )
     def avatar(self, request):
         user = request.user
         if request.method == 'PUT':
@@ -37,22 +42,27 @@ class CustomUserViewSet(DjoserUserViewSet):
                 user,
                 data=request.data,
                 partial=True,
-                context={'request':request}
+                context={'request': request}
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(
-                data={'avatar':user.avatar.url},
+                data={'avatar': user.avatar.url},
                 status=status.HTTP_200_OK
             )
         if user.avatar:
             user.avatar.delete()
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        
+
         return Response(status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(methods=['get'], detail=False, url_path='subscriptions', permission_classes=(permissions.IsAuthenticated,))
+
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path='subscriptions',
+        permission_classes=(permissions.IsAuthenticated,)
+    )
     def subscriptions(self, request):
         user = request.user
         subscriptions = Subscription.objects.filter(user=user)
@@ -63,29 +73,37 @@ class CustomUserViewSet(DjoserUserViewSet):
             page, many=True, context={'request': request}
         )
         return paginator.get_paginated_response(serializer.data)
-    
-    @action(methods=['post', 'delete'], detail=True, url_path='subscribe', permission_classes=(permissions.IsAuthenticated,))
+
+    @action(
+        methods=['post', 'delete'],
+        detail=True,
+        url_path='subscribe',
+        permission_classes=(permissions.IsAuthenticated,)
+    )
     def subscribe(self, request, id=None):
         user = request.user
         following = get_object_or_404(CustomUser, id=id)
+
         if request.method == 'POST':
             if Subscription.objects.filter(
                 user=user, following=following
-                ).exists():
+            ).exists():
                 return Response(status=status.HTTP_400_BAD_REQUEST)
+            
             if user == following:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-            subscription = Subscription.objects.create(user=user, following=following)
+            
+            subscription = Subscription.objects.create(
+                user=user, following=following)
+            
             serializer = SubscriptionUserSerializer(
                 subscription.following, context={'request': request}
             )
             return Response(data=serializer.data, status=status.HTTP_201_CREATED)
-        subscription = Subscription.objects.filter(user=user, following=following)
+        
+        subscription = Subscription.objects.filter(
+            user=user, following=following)
         if subscription:
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_400_BAD_REQUEST)
-
-
-
-

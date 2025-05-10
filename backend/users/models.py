@@ -15,10 +15,13 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.username
-    
+
+
 class Subscription(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='subscriptions')
-    following = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='followers')
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name='subscriptions')
+    following = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name='followers')
 
     class Meta:
         verbose_name = 'Подписка'

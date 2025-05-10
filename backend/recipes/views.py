@@ -13,6 +13,7 @@ from .filters import RecipeFilter
 from urlshortner.utils import shorten_url
 from django.db.models import Sum
 
+
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
@@ -25,6 +26,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
         if name:
             queryset = queryset.filter(name__startswith=name)
         return queryset
+
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
@@ -54,32 +56,46 @@ class RecipeViewSet(viewsets.ModelViewSet):
                       },
                 status=status.HTTP_201_CREATED
             )
-        
+
         if obj:
             obj.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=["post", "delete"], detail=True, permission_classes=(permissions.IsAuthenticated,), url_path='favorite')
+    @action(
+        methods=["post", "delete"],
+        detail=True,
+        permission_classes=(permissions.IsAuthenticated,),
+        url_path='favorite'
+    )
     def favorite(self, request, pk=None):
         user = request.user
         recipe = get_object_or_404(Recipe, id=pk)
         return self.add_delete_recipe(request, user, recipe, Favorite)
-    
-    @action(methods=["post", "delete"], detail=True, permission_classes=(permissions.IsAuthenticated,), url_path='shopping_cart')
+
+    @action(
+        methods=["post", "delete"],
+        detail=True,
+        permission_classes=(permissions.IsAuthenticated,),
+        url_path='shopping_cart'
+    )
     def shopping_cart(self, request, pk=None):
         user = request.user
         recipe = get_object_or_404(Recipe, id=pk)
         return self.add_delete_recipe(request, user, recipe, ShoppingCart)
-    
-    @action(methods=['get'], detail=True, url_path='get-link')
+
+    @action(
+        methods=['get'],
+        detail=True,
+        url_path='get-link'
+    )
     def get_short_link(self, request, pk=None):
         get_object_or_404(Recipe, id=pk)
         default_link = request.build_absolute_uri(f'/api/recipes/{pk}/')
         print(default_link)
         short_link = shorten_url(url=default_link, is_permanent=False)
         return Response(data={'short-link': short_link})
-    
+
     @action(
         methods=['get'],
         detail=False,
@@ -88,7 +104,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        recipes = Recipe.objects.filter(in_cart__user = user)
+        recipes = Recipe.objects.filter(in_cart__user=user)
 
         ingredients = (
             IngredientInRecipe.objects
@@ -107,13 +123,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if not shopping_list:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        
+
         content = '\n'.join(shopping_list)
         filename = 'shopping_list.txt'
         response = HttpResponse(content, content_type='text/plain')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
-
-
-
-
