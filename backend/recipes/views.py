@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from .serializers import RecipeSerializer, IngredientSerializer
-from .models import Recipe, Ingredient, Favorite
+from .models import Recipe, Ingredient, Favorite, ShoppingCart, IngredientInRecipe
 from rest_framework import filters
 from api.permissions import IsAuthorOrReadOnly
 from api.pagination import UserPagination
@@ -8,9 +8,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
+from django.http import HttpResponse
 from rest_framework import permissions, status
 from .filters import RecipeFilter
 from urlshortner.utils import shorten_url
+from django.db.models import Sum
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
@@ -30,14 +32,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(methods=["post", "delete"], detail=True, permission_classes=(permissions.IsAuthenticated,))
-    def favorite(self, request, pk=None):
-        user = request.user
-        recipe = get_object_or_404(Recipe, id=pk)
+    def add_delete_recipe(self, request, user, recipe, model):
         if request.method == 'POST':
-            if Favorite.objects.filter(user=user, recipe=recipe).exists():
+            if model.objects.filter(user=user, recipe=recipe).exists():
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-            Favorite.objects.create(
+            model.objects.create(
                 user=user,
                 recipe=recipe
             )
@@ -49,11 +48,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
                       },
                 status=status.HTTP_201_CREATED
             )
-        favorite = get_object_or_404(Favorite, user=user, recipe=recipe)
-        if favorite:
-            favorite.delete()
+        obj = get_object_or_404(model, user=user, recipe=recipe)
+        if obj:
+            obj.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=["post", "delete"], detail=True, permission_classes=(permissions.IsAuthenticated,), url_path='favorite')
+    def favorite(self, request, pk=None):
+        user = request.user
+        recipe = get_object_or_404(Recipe, id=pk)
+        return self.add_delete_recipe(request, user, recipe, Favorite)
+    
+    @action(methods=["post", "delete"], detail=True, permission_classes=(permissions.IsAuthenticated,), url_path='shopping_cart')
+    def shopping_cart(self, request, pk=None):
+        user = request.user
+        recipe = get_object_or_404(Recipe, id=pk)
+        return self.add_delete_recipe(request, user, recipe, ShoppingCart)
     
     @action(methods=['get'], detail=True, url_path='get-link')
     def get_short_link(self, request, pk=None):
@@ -62,6 +73,40 @@ class RecipeViewSet(viewsets.ModelViewSet):
         print(default_link)
         short_link = shorten_url(url=default_link, is_permanent=False)
         return Response(data={'short-link': short_link})
+    
+    @action(
+        methods=['get'],
+        detail=False,
+        url_path='download_shopping_cart',
+        permission_classes=(permissions.IsAuthenticated,)
+    )
+    def download_shopping_cart(self, request):
+        user = request.user
+        recipes = Recipe.objects.filter(in_cart__user = user)
+
+        ingredients = (
+            IngredientInRecipe.objects
+            .filter(recipe__in=recipes)
+            .values('ingredient__name', 'ingredient__measurement_unit')
+            .annotate(total_amount=Sum('amount'))
+            .order_by('ingredient__name')
+        )
+
+        shopping_list = []
+        for item in ingredients:
+            name = item['ingredient__name']
+            unit = item['ingredient__measurement_unit']
+            amount = item['total_amount']
+            shopping_list.append(f'{name} ({unit}) - {amount}')
+
+        if not shopping_list:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        content = '\n'.join(shopping_list)
+        filename = 'shopping_list.txt'
+        response = HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
 
 
