@@ -23,7 +23,7 @@ DEBUG = False
 ALLOWED_HOSTS=127.0.0.1,localhost
 ```
 ### Соберите и запустите проект:
-
+В папке backend/infra/
 ```bash
 docker-compose up -d --build
 ```
