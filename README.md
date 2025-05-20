@@ -1,40 +1,72 @@
-# Foodgram
+# 🍽️ Foodgram — Продуктовый помощник
 
-Проект Foodgram — «Продуктовый помощник»: приложение для публикации рецептов, добавления их в избранное и список покупок, а также подписки на авторов.
+**Foodgram** — это веб-приложение для публикации рецептов, добавления их в избранное и список покупок, а также подписки на авторов.
 
-## 🚀 Быстрый старт
+## 👨‍💻 Автор
 
-Клонируйте репозиторий:
+**Савелий Кривов**
+📧 [krivovsaveliy28@gmail.com](mailto:krivovsaveliy28@gmail.com)
+🔗 [GitHub: SaveliyKrivov](https://github.com/SaveliyKrivov)
+
+## 🛠️ Стек технологий
+
+* Python 3.9
+* Django 3.2
+* Django REST Framework
+* PostgreSQL
+* Docker
+* Docker Compose
+* Nginx
+* Gunicorn
+* GitHub Actions
+
+## 🚀 Локальный запуск с Docker
+
+### 1. Клонирование репозитория
 
 ```bash
 git clone https://github.com/SaveliyKrivov/foodgram-st.git
 cd foodgram-st
 ```
-В корне проекта разместите .env файл. Структура:
-```
+
+### 2. Создание и настройка `.env` файла
+
+В корне проекта создайте файл `.env` со следующим содержимым:
+
+```env
 POSTGRES_DB=foodgram
 POSTGRES_USER=foodgram_user
 POSTGRES_PASSWORD=foodgram_password
-DB_NAME=foodgram
 DB_HOST=db
 DB_PORT=5432
-SECRET_KEY = 'django-insecure-example-key'
-DEBUG = False
+SECRET_KEY=your_django_secret_key
+DEBUG=False
 ALLOWED_HOSTS=127.0.0.1,localhost
 ```
-### Соберите и запустите проект:
-В папке backend/infra/
+
+### 3. Сборка и запуск контейнеров
+
+Перейдите в директорию `infra/` и выполните:
+
 ```bash
 docker-compose up -d --build
 ```
-Примените миграции, соберите статику и создайте суперпользователя:
+
+### 4. Применение миграций и сбор статики
 
 ```bash
 docker-compose exec backend python manage.py migrate
 docker-compose exec backend python manage.py collectstatic --noinput
+```
+
+### 5. Создание суперпользователя
+
+```bash
 docker-compose exec backend python manage.py createsuperuser
 ```
-### 📦 Загрузка данных
+
+### 6. Загрузка данных
+
 Загрузите ингредиенты, пользователей и рецепты:
 
 ```bash
@@ -42,3 +74,9 @@ docker-compose exec backend python manage.py load_ingredients
 docker-compose exec backend python manage.py load_users
 docker-compose exec backend python manage.py load_recipes
 ```
+
+### 7. Доступ к приложению
+
+* Frontend: [http://localhost/](http://localhost/)
+* Админка: [http://localhost/admin/](http://localhost/admin/)
+* API: [http://localhost/api/](http://localhost/api/)

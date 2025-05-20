@@ -1,17 +1,20 @@
 from rest_framework import viewsets
-from .serializers import RecipeSerializer, IngredientSerializer
-from .models import Recipe, Ingredient, Favorite, ShoppingCart, IngredientInRecipe
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import permissions, status
+from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.db.models import Sum
+
+from urlshortner.utils import shorten_url
+
+from .filters import IngredientSearchFilter, RecipeFilter
+from .serializers import IngredientSerializer, RecipeSerializer
+from .models import (Favorite, Ingredient, IngredientInRecipe,
+                     Recipe, ShoppingCart)
 from api.permissions import IsAuthorOrReadOnly
 from api.pagination import UserPagination
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
-from rest_framework.response import Response
-from django.http import HttpResponse
-from rest_framework import permissions, status
-from .filters import RecipeFilter
-from urlshortner.utils import shorten_url
-from django.db.models import Sum
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -19,6 +22,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     pagination_class = None
+    filter_backends = (IngredientSearchFilter,)
+    search_fields = ('^name',)
 
     def get_queryset(self):
         queryset = Ingredient.objects.all()
@@ -63,7 +68,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(
-        methods=["post", "delete"],
+        methods=['post', 'delete'],
         detail=True,
         permission_classes=(permissions.IsAuthenticated,),
         url_path='favorite'
@@ -74,7 +79,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return self.add_delete_recipe(request, user, recipe, Favorite)
 
     @action(
-        methods=["post", "delete"],
+        methods=['post', 'delete'],
         detail=True,
         permission_classes=(permissions.IsAuthenticated,),
         url_path='shopping_cart'
@@ -92,7 +97,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_short_link(self, request, pk=None):
         get_object_or_404(Recipe, id=pk)
         default_link = request.build_absolute_uri(f'/api/recipes/{pk}/')
-        print(default_link)
         short_link = shorten_url(url=default_link, is_permanent=False)
         return Response(data={'short-link': short_link})
 
@@ -103,8 +107,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
-        user = request.user
-        recipes = Recipe.objects.filter(in_cart__user=user)
+        recipes = Recipe.objects.filter(in_cart__user=request.user)
 
         ingredients = (
             IngredientInRecipe.objects

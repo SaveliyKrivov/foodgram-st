@@ -1,6 +1,10 @@
 from rest_framework import serializers
+from django.db import transaction
+
 from drf_extra_fields.fields import Base64ImageField
-from .models import Ingredient, Recipe, IngredientInRecipe, Favorite, ShoppingCart
+
+from .models import (Favorite, Ingredient, IngredientInRecipe,
+                     Recipe, ShoppingCart)
 from users.serializers import CustomUserSerializer
 
 
@@ -33,7 +37,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         many=True
     )
     author = CustomUserSerializer(read_only=True)
-    image = Base64ImageField(required=True)
+    image = Base64ImageField(required=False)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
@@ -46,12 +50,14 @@ class RecipeSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'author', 'is_favorited',
                             'is_in_shopping_cart')
 
+    @transaction.atomic
     def create(self, validated_data):
         ingredient_data = validated_data.pop('ingredient_amounts')
         recipe = Recipe.objects.create(**validated_data)
         self._set_ingredients(recipe, ingredient_data)
         return recipe
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         ingredient_data = validated_data.pop('ingredient_amounts', None)
         for attr, value in validated_data.items():
@@ -72,12 +78,12 @@ class RecipeSerializer(serializers.ModelSerializer):
             for ingredient_data in ingredient_data
         ])
 
+    def validate_image(self, value):
+        if self.instance is None and not value:
+            raise serializers.ValidationError('У рецепта должна быть картинка')
+        return value
+
     def validate(self, data):
-        image = self.initial_data.get('image')
-        if not image:
-            raise serializers.ValidationError(
-                {'image': 'У рецепта должна быть картинка'}
-            )
         ingredients = self.initial_data.get('ingredients')
         if not ingredients:
             raise serializers.ValidationError(
