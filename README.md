@@ -5,7 +5,7 @@
 ## 👨‍💻 Автор
 
 **Савелий Кривов**
-📧 [krivovsaveliy28@gmail.com](mailto:krivovsaveliy28@gmail.com)
+
 🔗 [GitHub: SaveliyKrivov](https://github.com/SaveliyKrivov)
 
 ## 🛠️ Стек технологий
