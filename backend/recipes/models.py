@@ -7,6 +7,7 @@ from .const import (
     RECIPE_NAME_MAX_LENGTH,
     UNIT_MAX_LENGTH,
     MIN_INGREDIENT_AMOUNT,
+    MIN_COOKING_TIME,
 )
 
 
@@ -33,7 +34,7 @@ class Recipe(models.Model):
     image = models.ImageField("Фото", upload_to="recipes/")
     text = models.TextField("Описание")
     cooking_time = models.PositiveSmallIntegerField(
-        "Время приготовления", validators=[MinValueValidator(1)]
+        "Время приготовления", validators=[MinValueValidator(MIN_COOKING_TIME)]
     )
     ingredients = models.ManyToManyField(Ingredient, through="IngredientInRecipe")
 

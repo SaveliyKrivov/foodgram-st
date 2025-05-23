@@ -1,11 +1,10 @@
-from rest_framework import serializers
 from django.db import transaction
-
 from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
 
+from users.serializers import CustomUserSerializer
 from .models import (Favorite, Ingredient, IngredientInRecipe,
                      Recipe, ShoppingCart)
-from users.serializers import CustomUserSerializer
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -78,8 +77,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             for ingredient_data in ingredient_data
         ])
 
+    # Ошибка, если поле image есть, но у него пустое значение
     def validate_image(self, value):
-        if self.instance is None and not value:
+        if not value:
             raise serializers.ValidationError('У рецепта должна быть картинка')
         return value
 
@@ -105,6 +105,17 @@ class RecipeSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'ingredients': 'Количество ингредиента должно быть больше нуля'}
                 )
+            
+        # Проверка только в случае создания рецепта (не нарушает редактирование)
+        if self.instance is None:
+            image_in_data = 'image' in self.initial_data
+            image_value = self.initial_data.get('image')
+            
+            if not image_in_data or not image_value:
+                raise serializers.ValidationError(
+                    {'image': 'У рецепта должна быть картинка'}
+                )
+            
         return data
 
     def get_is_favorited(self, obj):

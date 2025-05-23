@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import RegexValidator
 
+from .const import USERNAME_MAX_LENGTH
+
 
 class CustomUser(AbstractUser):
     avatar = models.ImageField(
@@ -11,7 +13,7 @@ class CustomUser(AbstractUser):
     )
     email = models.EmailField(unique=True)
     username = models.CharField(
-        max_length=150,
+        max_length=USERNAME_MAX_LENGTH,
         unique=True,
         validators=[
             RegexValidator(

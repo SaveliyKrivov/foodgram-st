@@ -24,13 +24,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (IngredientSearchFilter,)
     search_fields = ("^name",)
 
-    def get_queryset(self):
-        queryset = Ingredient.objects.all()
-        name = self.request.query_params.get("name")
-        if name:
-            queryset = queryset.filter(name__startswith=name)
-        return queryset
-
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
